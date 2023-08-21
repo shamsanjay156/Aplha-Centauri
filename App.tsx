@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Sample React Native App
  * https://github.com/facebook/react-native
@@ -18,9 +19,11 @@ import messaging from '@react-native-firebase/messaging';
 import notifee, {
   AndroidImportance,
   AndroidVisibility,
+  EventType,
 } from '@notifee/react-native';
 import {RootNavigator} from './src/navigators/rootStackNavigator';
 import {AppStatusBar} from './src/components/AppStatusBar';
+import RNBootSplash from 'react-native-bootsplash';
 
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -52,12 +55,18 @@ function App(): JSX.Element {
     });
   };
   useEffect(() => {
+    PermissionsAndroid.check('android.permission.POST_NOTIFICATIONS').then(
+      res => {
+        console.log('response', res);
+      },
+    );
     PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
     );
   }, []);
   useEffect(() => {
-    const unsubscribe = messaging().onMessage(async () => {
+    const unsubscribe = messaging().onMessage(async message => {
+      console.log('message......', message);
       await displayNotification();
     });
 
@@ -71,15 +80,34 @@ function App(): JSX.Element {
         console.log('FCM Token -> ', fcmToken);
       });
   }, []);
+  useEffect(() => {
+    // Assume a message-notification contains a "type" property in the data payload of the screen to open
 
+    messaging().onNotificationOpenedApp(remoteMessage => {
+      console.log(
+        'Notification caused app to open from background state:',
+        remoteMessage.notification,
+      );
+    });
+
+    // Check whether an initial notification is available
+    messaging()
+      .getInitialNotification()
+      .then(remoteMessage => {
+        if (remoteMessage) {
+          console.log(
+            'Notification caused app to open from quit state:',
+            remoteMessage,
+          );
+        }
+      });
+  }, []);
+  useEffect(() => {
+    RNBootSplash.hide({fade: true, duration: 1000});
+  }, []);
   return (
     <SafeAreaProvider>
-      <AppStatusBar
-        props={{
-          barStyle: isDarkMode ? 'light-content' : 'dark-content',
-        }}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
+      <AppStatusBar />
       <View
         style={{
           flex: 1,
